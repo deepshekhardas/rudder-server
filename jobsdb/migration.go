@@ -455,12 +455,19 @@ func (jd *Handle) getMigrationList(dsList []dataSetT) (migrateFrom []dsWithPendi
 				liveDSCount++
 			} else {
 				if waiting != nil { // have another dataset waiting for a pair
-					migrateFrom = append(migrateFrom, *waiting, dsWithPendingJobCount{ds: ds, numJobsPending: recordsLeft})
-					insertBeforeDS = dsList[idx+1]
-					pendingJobsCount += waiting.numJobsPending + recordsLeft
-					liveDSCount += 2
-					waiting = nil
+					if waiting.numJobsPending+recordsLeft > maxDSSize {
+						waiting = nil
+					} else {
+						migrateFrom = append(migrateFrom, *waiting, dsWithPendingJobCount{ds: ds, numJobsPending: recordsLeft})
+						insertBeforeDS = dsList[idx+1]
+						pendingJobsCount += waiting.numJobsPending + recordsLeft
+						liveDSCount += 2
+						waiting = nil
+					}
 				} else if pendingJobsCount > 0 { // we already know that we'll be migrating another dataset with pending jobs, so can add this one too
+					if pendingJobsCount+recordsLeft > maxDSSize {
+						break // adding this dataset would exceed maxDSSize, leave it for the next migration cycle
+					}
 					migrateFrom = append(migrateFrom, dsWithPendingJobCount{ds: ds, numJobsPending: recordsLeft})
 					insertBeforeDS = dsList[idx+1]
 					pendingJobsCount += recordsLeft
