@@ -51,8 +51,8 @@ func NewRoutingProxy(t *testing.T, numPartitions int, partitionMappings map[int]
 		}
 		partitionIdx, _ := partmap.Murmur3Partition32(partitionKey, uint32(numPartitions))
 		rp.partitionMappingsMu.RLock()
+		defer rp.partitionMappingsMu.RUnlock() // unlock only after request is processed
 		nodeIndex, ok := rp.partitionMappings[int(partitionIdx)]
-		rp.partitionMappingsMu.RUnlock()
 		if !ok || nodeIndex < 0 || nodeIndex >= len(rp.backends) {
 			http.Error(w, "no backend for partition", http.StatusBadGateway)
 			return
@@ -70,12 +70,10 @@ type routingProxy struct {
 	backends            []*httputil.ReverseProxy
 }
 
-func (rp *routingProxy) UpdatePartitionMapping(partitionIdx, nodeIndex int) {
-	rp.partitionMappingsMu.Lock()
-	defer rp.partitionMappingsMu.Unlock()
-	rp.partitionMappings[partitionIdx] = nodeIndex
-}
-
+// SetPartitionMappings sets the entire partition to node index mapping. This method returns only after acquiring a write lock,
+// ensuring that:
+// 1. All ongoing requests are processed with the old mapping before the new mapping takes effect.
+// 2. Post-return, any new incoming requests will be routed based on the updated mapping.
 func (rp *routingProxy) SetPartitionMappings(partitionMappings map[int]int) {
 	rp.partitionMappingsMu.Lock()
 	defer rp.partitionMappingsMu.Unlock()
