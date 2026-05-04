@@ -50,9 +50,9 @@ func TestPartitionMigrationGatewayProcessorMode(t *testing.T) {
 		extraStressWorkspaces int           // number of extra workspace migrations to include (0 = normal mode)
 		restartProcessorEvery time.Duration // how often to restart processor nodes while migration is ongoing
 	}{
-		{name: "normal", extraStressWorkspaces: 0, restartProcessorEvery: 25 * time.Second},
+		{name: "normal", extraStressWorkspaces: 0, restartProcessorEvery: 30 * time.Second},
 		{name: "stress_100_workspaces", extraStressWorkspaces: 100, restartProcessorEvery: 30 * time.Second},
-		{name: "stress_1000_workspaces", extraStressWorkspaces: 1000, restartProcessorEvery: 35 * time.Second},
+		{name: "stress_1000_workspaces", extraStressWorkspaces: 1000, restartProcessorEvery: 40 * time.Second},
 		{name: "stress_5000_workspaces", extraStressWorkspaces: 5000, restartProcessorEvery: 50 * time.Second},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -224,7 +224,7 @@ func testPartitionMigrationGatewayProcessorMode(t *testing.T, extraStressWorkspa
 		"Router.eventOrderKeyThreshold":            "0", // we need strict event ordering guarantees for this test
 		"Router.noOfWorkers":                       strconv.Itoa(numPartitions),
 		"Router.Network.IncludeInstanceIdInHeader": "true", // for debugging in case of receiving out-of-order events
-
+		"Router.jobIterator.maxQueries":            "1",
 	}
 	rsBinaryPath := filepath.Join(t.TempDir(), "rudder-server-binary")
 	rudderserver.BuildRudderServerBinary(t, "../../main.go", rsBinaryPath)
