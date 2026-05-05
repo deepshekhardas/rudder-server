@@ -9,7 +9,6 @@ import (
 	"github.com/rudderlabs/rudder-go-kit/logger"
 	"github.com/rudderlabs/rudder-go-kit/stats"
 	obskit "github.com/rudderlabs/rudder-observability-kit/go/labels"
-	"github.com/rudderlabs/rudder-server/jobsdb"
 	"github.com/rudderlabs/rudder-server/processor/types"
 	"github.com/rudderlabs/rudder-server/rruntime"
 	"github.com/rudderlabs/rudder-server/utils/tracing"
@@ -210,7 +209,7 @@ func (w *pipelineWorker) start() {
 					ctx:                   subJob.ctx,
 					rsourcesStats:         subJob.rsourcesStats,
 					dedupKeys:             make(map[string]struct{}),
-					procErrorJobsByDestID: make(map[string][]*jobsdb.JobT),
+					procErrorJobsByDestID: make(map[string][]procErrorJob),
 					sourceDupStats:        make(map[dupStatKey]int),
 					start:                 subJob.start,
 				}
