@@ -39,30 +39,34 @@ func (b *jobsDBPartitionBuffer) startBufferWatchdog() {
 				}
 				return slices.Contains(bufferedPartitions, partitionID), nil
 			}
-			var firstJob *jobsdb.JobT
-			// try to find a job in buffered JobsDB
+			var unbufferedJob *jobsdb.JobT
+			// try to find a job in buffered JobsDB belonging to an unbuffered partition
 			for dsLimitsReached := true; dsLimitsReached; {
-				r, err := b.bufferReadJobsDB.GetUnprocessed(ctx, jobsdb.GetQueryParams{JobsLimit: 1})
+				r, err := b.bufferReadJobsDB.GetUnprocessed(ctx, jobsdb.GetQueryParams{JobsLimit: 10})
 				if err != nil {
 					return false, fmt.Errorf("checking for unprocessed jobs in buffer JobsDB: %w", err)
 				}
-				if len(r.Jobs) > 0 {
-					firstJob = r.Jobs[0]
+				for _, job := range r.Jobs {
+					partitionID := job.PartitionID
+					partitionBuffered, err := isPartitionBuffered(partitionID)
+					if err != nil {
+						return false, fmt.Errorf("checking if partition %s is buffered: %w", partitionID, err)
+					}
+					if !partitionBuffered {
+						unbufferedJob = job
+						dsLimitsReached = false
+						break
+					}
+				}
+				if unbufferedJob != nil {
 					break
 				}
 				dsLimitsReached = r.DSLimitsReached
 			}
-			if firstJob == nil { // no jobs found
+			if unbufferedJob == nil { // no jobs found in unbuffered partitions
 				return false, nil
 			}
-			partitionID := firstJob.PartitionID
-			partitionBuffered, err := isPartitionBuffered(partitionID)
-			if err != nil {
-				return false, fmt.Errorf("checking if partition %s is buffered: %w", partitionID, err)
-			}
-			if partitionBuffered {
-				return false, nil
-			}
+			partitionID := unbufferedJob.PartitionID
 			b.logger.Warnn("Moving buffered jobs for unbuffered partition",
 				logger.NewStringField("partitionId", partitionID),
 				logger.NewStringField("prefix", b.bufferReadJobsDB.Identifier()),
