@@ -21,5 +21,9 @@ func ReloadGatewayRequestKeyPrefix(config *config.Config) string {
 
 // getEtcdNamespace retrieves the key namespace from the configuration
 func getEtcdNamespace(config *config.Config) string {
-	return config.GetStringVar("", "RELEASE_NAME")
+	releaseName := config.GetStringVar("", "RELEASE_NAME")
+	if releaseName != "" {
+		return releaseName
+	}
+	return config.GetStringVar("", "WORKSPACE_NAMESPACE")
 }
