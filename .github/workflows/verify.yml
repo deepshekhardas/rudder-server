@@ -44,7 +44,7 @@ jobs:
           # The regex matches a 14-digit timestamp followed by a 12-char commit hash at the end.
           VIOLATIONS=$(go list -m -json all | jq -r '
             select(.Path | startswith("github.com/rudderlabs/")) |
-            select(.Version | test("[0-9]{14}-[a-f0-9]{12}$")) |
+            select(.Version | test("[0-9]{14}-[a-f0-9]{12}$") // false) |
             "\(.Path)@\(.Version)"
           ')
           if [ -n "$VIOLATIONS" ]; then

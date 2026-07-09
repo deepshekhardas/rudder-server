@@ -2,6 +2,7 @@ package backendconfig
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/samber/lo"
 
@@ -35,7 +36,7 @@ func (d *DestinationT) GetAccountID(flow common.RudderFlow) (string, error) {
 // Otherwise, it falls back to checking the destination definition config.
 func (d *DestinationT) IsOAuthDestination(flow common.RudderFlow) (bool, error) {
 	if account := d.resolveAccount(flow); account != nil && account.AccountDefinition != nil {
-		return account.AccountDefinition.AuthenticationType == accountDefinitionOAuthType, nil
+		return strings.EqualFold(account.AccountDefinition.AuthenticationType, accountDefinitionOAuthType), nil
 	}
 
 	authValue, _ := misc.NestedMapLookup(d.DestinationDefinition.Config, "auth", "type")

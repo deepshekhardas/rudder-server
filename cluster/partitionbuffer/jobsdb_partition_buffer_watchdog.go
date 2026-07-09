@@ -42,12 +42,17 @@ func (b *jobsDBPartitionBuffer) startBufferWatchdog() {
 			var firstJob *jobsdb.JobT
 			// try to find a job in buffered JobsDB
 			for dsLimitsReached := true; dsLimitsReached; {
-				r, err := b.bufferReadJobsDB.GetUnprocessed(ctx, jobsdb.GetQueryParams{JobsLimit: 1})
+				r, err := b.bufferReadJobsDB.GetUnprocessed(ctx, jobsdb.GetQueryParams{JobsLimit: 10})
 				if err != nil {
 					return false, fmt.Errorf("checking for unprocessed jobs in buffer JobsDB: %w", err)
 				}
-				if len(r.Jobs) > 0 {
-					firstJob = r.Jobs[0]
+				for _, job := range r.Jobs {
+					if !job.Locked {
+						firstJob = job
+						break
+					}
+				}
+				if firstJob != nil {
 					break
 				}
 				dsLimitsReached = r.DSLimitsReached
